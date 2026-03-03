@@ -1,100 +1,22 @@
-<?php
+<!DOCTYPE html>
+<html>
+<script>
+const xmlhttp = new XMLHttpRequest();
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Accept");
-
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    http_response_code(200);
-    exit();
+xmlhttp.onload = function() {
+  const myObj = JSON.parse(this.responseText);
+  document.getElementById("demo").innerHTML = myObj.valore;
 }
-
-$method = $_SERVER["REQUEST_METHOD"];
-$contentType = $_SERVER["CONTENT_TYPE"] ?? "application/json";
-$accept = $_SERVER["HTTP_ACCEPT"] ?? "application/json";
-
-$input = file_get_contents("php://input");
-
-$database = [
-    1 => ["id" => 1, "nome" => "Mario", "valore" => 100],
-    2 => ["id" => 2, "nome" => "Luigi", "valore" => 200]
-];
-
-function sendResponse($data, $accept) {
-
-    if (strpos($accept, "xml") !== false) {
-        header("Content-Type: application/xml");
-
-        $xml = new SimpleXMLElement("<response/>");
-        array_to_xml($data, $xml);
-        echo $xml->asXML();
-
-    } else {
-        header("Content-Type: application/json");
-        echo json_encode($data);
-    }
-
-    exit();
-}
-
-function array_to_xml($data, &$xml) {
-    foreach ($data as $key => $value) {
-        if (is_array($value)) {
-            $subnode = $xml->addChild(is_numeric($key) ? "item" : $key);
-            array_to_xml($value, $subnode);
-        } else {
-            $xml->addChild(is_numeric($key) ? "item" : $key, htmlspecialchars($value));
-        }
-    }
-}
-
-function getInputData($input, $contentType) {
-
-    if (strpos($contentType, "xml") !== false) {
-        $xml = simplexml_load_string($input);
-        return json_decode(json_encode($xml), true);
-    }
-
-    return json_decode($input, true);
-}
-
-switch ($method) {
-
-    case "GET":
-        sendResponse($database, $accept);
-        break;
-
-    case "POST":
-        $data = getInputData($input, $contentType);
-        $newId = rand(3, 999);
-        $data["id"] = $newId;
-
-        sendResponse([
-            "messaggio" => "Record creato",
-            "record" => $data
-        ], $accept);
-        break;
-
-    case "PUT":
-        $data = getInputData($input, $contentType);
-
-        sendResponse([
-            "messaggio" => "Record modificato",
-            "record" => $data
-        ], $accept);
-        break;
-
-    case "DELETE":
-        $data = getInputData($input, $contentType);
-
-        sendResponse([
-            "messaggio" => "Record eliminato",
-            "id" => $data["id"] ?? null
-        ], $accept);
-        break;
-
-    default:
-        http_response_code(405);
-        sendResponse(["errore" => "Metodo non consentito"], $accept);
-}
-?>
+//formato oggetti javascript
+const formData={nome:"prova", valore:3};
+xmlhttp.open("POST", "index.php");
+xmlhttp.setRequestHeader("Content-type","application/json");
+var dati = JSON.stringify(formData);
+//console.log(JSON.stringify(formData));
+xmlhttp.send(dati);
+</script>
+<body>
+<h2>Richiesta POST con JSON</h2>
+<p id="demo"></p>
+</body>
+</html>
