@@ -1,78 +1,101 @@
 <?php
-/*header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE");
-header("Access-Control-Max-Age: 3600");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-foreach($_SERVER as $chiave=>$valore){
-    echo $chiave."-->".$valore."\n<br>";
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Accept");
+
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit();
 }
-*/
 
-//elabora header
-$metodo=$_SERVER["REQUEST_METHOD"];
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$uri = explode( '/', $uri );
+$method = $_SERVER["REQUEST_METHOD"];
+$contentType = $_SERVER["CONTENT_TYPE"] ?? "application/json";
+$accept = $_SERVER["HTTP_ACCEPT"] ?? "application/json";
 
-//legge il tipo di contenuto inviato dal client
-$ct=$_SERVER["CONTENT_TYPE"];
-$type=explode("/",$ct);
+$input = file_get_contents("php://input");
 
-//legge il tipo di contenuto di ritorno richiesto dal client
-$retct=$_SERVER["HTTP_ACCEPT"];
-$ret=explode("/",$retct);
-echo $type[1];
-//print_r($uri);
-//echo "metodo-->".$metodo;
+$database = [
+    1 => ["id" => 1, "nome" => "Mario", "valore" => 100],
+    2 => ["id" => 2, "nome" => "Luigi", "valore" => 200]
+];
 
-if ($metodo=="GET"){
-    echo "get";       
-}
-if ($metodo=="POST"){
-    echo "post\n";
-    //recupera i dati dall'header
-   $body=file_get_contents('php://input');
-   // echo $body
-   
-   //converte in array associativo
-    if ($type[1]=="json"){
-        $data = json_decode($body,true);
-    }
-    if ($type[1]=="xml"){
-        $xml = simplexml_load_string($body);
-        $json = json_encode($xml);
-        $data = json_decode($json, true);
-    }
-    
-    //elabora i dati o interagisce con il database
-    $data["valore"]+=2000;
-    
-    //settaggio dei campi dell'header
-    header("Content-Type: ".$retct);    
-    //restituisce i dati convertiti nel formato richiesto
-    if ($ret[1]=="json"){
+function sendResponse($data, $accept) {
+
+    if (strpos($accept, "xml") !== false) {
+        header("Content-Type: application/xml");
+
+        $xml = new SimpleXMLElement("<response/>");
+        array_to_xml($data, $xml);
+        echo $xml->asXML();
+
+    } else {
+        header("Content-Type: application/json");
         echo json_encode($data);
     }
-    if ($ret[1]=="xml"){
-        $xml = new SimpleXMLElement('<root/>');
-        array_walk_recursive($data, array ($xml, 'addChild'));    
-        echo $xml->asXML();
-        //alternativa
-        $r='<?xml version="1.0"?><rec><nome>'.$data["nome"].'</nome><valore>'.$data["valore"].'</valore></rec>';
+
+    exit();
+}
+
+function array_to_xml($data, &$xml) {
+    foreach ($data as $key => $value) {
+        if (is_array($value)) {
+            $subnode = $xml->addChild(is_numeric($key) ? "item" : $key);
+            array_to_xml($value, $subnode);
+        } else {
+            $xml->addChild(is_numeric($key) ? "item" : $key, htmlspecialchars($value));
+        }
     }
-   
-}
-if ($metodo=="PUT"){
-    echo "put";
-    //codice di risposta
-    http_response_code(404);
-}
-if ($metodo=="DELETE"){
-    echo "delete";
-    http_response_code(404);
 }
 
+function getInputData($input, $contentType) {
 
+    if (strpos($contentType, "xml") !== false) {
+        $xml = simplexml_load_string($input);
+        return json_decode(json_encode($xml), true);
+    }
 
+    return json_decode($input, true);
+}
+
+switch ($method) {
+
+    case "GET":
+        sendResponse($database, $accept);
+        break;
+
+    case "POST":
+        $data = getInputData($input, $contentType);
+        $newId = rand(3, 999);
+        $data["id"] = $newId;
+
+        sendResponse([
+            "messaggio" => "Record creato",
+            "record" => $data
+        ], $accept);
+        break;
+
+    case "PUT":
+        $data = getInputData($input, $contentType);
+
+        sendResponse([
+            "messaggio" => "Record modificato",
+            "record" => $data
+        ], $accept);
+        break;
+
+    case "DELETE":
+        $data = getInputData($input, $contentType);
+
+        sendResponse([
+            "messaggio" => "Record eliminato",
+            "id" => $data["id"] ?? null
+        ], $accept);
+        break;
+
+    default:
+        http_response_code(405);
+        sendResponse(["errore" => "Metodo non consentito"], $accept);
+        
+}
 ?>
