@@ -1,22 +1,119 @@
 <!DOCTYPE html>
-<html>
-<script>
-const xmlhttp = new XMLHttpRequest();
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>WebService CRUD</title>
 
-xmlhttp.onload = function() {
-  const myObj = JSON.parse(this.responseText);
-  document.getElementById("demo").innerHTML = myObj.valore;
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #7ba4e0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
-//formato oggetti javascript
-const formData={nome:"prova", valore:3};
-xmlhttp.open("POST", "index.php");
-xmlhttp.setRequestHeader("Content-type","application/json");
-var dati = JSON.stringify(formData);
-//console.log(JSON.stringify(formData));
-xmlhttp.send(dati);
-</script>
+
+.container {
+    background: rgb(110, 147, 216);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    width: 500px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+select, textarea, button {
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+textarea {
+    resize: none;
+}
+
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+.response {
+    background: #96c7ff;
+    padding: 10px;
+    border-radius: 6px;
+    height: 150px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-size: 13px;
+}
+</style>
+</head>
+
 <body>
-<h2>Richiesta POST con JSON</h2>
-<p id="demo"></p>
+
+<div class="container">
+    <h2>Test WebService CRUD</h2>
+
+    <select id="method">
+        <option value="GET">GET</option>
+        <option value="POST">POST</option>
+        <option value="PUT">PUT</option>
+        <option value="DELETE">DELETE</option>
+    </select>
+
+    <select id="format">
+        <option value="application/json">JSON</option>
+        <option value="application/xml">XML</option>
+    </select>
+
+    <textarea id="body">
+{"nome":"Anna"}
+    </textarea>
+
+    <button onclick="sendRequest()">Invia richiesta</button>
+
+    <div class="response" id="response"></div>
+</div>
+
+<script>
+function sendRequest() {
+
+    const method = document.getElementById("method").value;
+    const format = document.getElementById("format").value;
+    const body = document.getElementById("body").value;
+
+    fetch("index.php", {
+        method: method,
+        headers: {
+            "Content-Type": format,
+            "Accept": format
+        },
+        body: method === "GET" ? null : body
+    })
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById("response").textContent = data;
+    })
+    .catch(error => {
+        document.getElementById("response").textContent = "Errore: " + error;
+    });
+}
+</script>
+
 </body>
 </html>
